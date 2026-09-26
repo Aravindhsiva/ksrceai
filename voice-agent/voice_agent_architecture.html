@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice-to-Action Campus Assistant — Architecture Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1620;
+    --bg-alt:#0B1017;
+    --panel:#161F2B;
+    --panel-2:#1B2632;
+    --border:#28374A;
+    --text:#E7EDF3;
+    --muted:#8CA0B4;
+    --muted-2:#5E7285;
+    --teal:#49D6C8;
+    --teal-dim:rgba(73,214,200,.14);
+    --amber:#E8A33D;
+    --amber-dim:rgba(232,163,61,.14);
+    --violet:#B48CF2;
+    --violet-dim:rgba(180,140,242,.14);
+    --green:#6FD98F;
+    --green-dim:rgba(111,217,143,.14);
+    --coral:#F16D6D;
+    --coral-dim:rgba(241,109,109,.14);
+    --radius-s:8px;
+    --radius-m:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 10%, rgba(180,140,242,.06), transparent 42%),
+      radial-gradient(circle at 88% 90%, rgba(73,214,200,.05), transparent 45%);
+    color:var(--text);
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace;}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:3px; border-radius:4px;}
+
+  header{padding:64px 24px 40px; max-width:840px; margin:0 auto;}
+  .kicker{
+    display:inline-flex; align-items:center; gap:8px;
+    color:var(--muted); font-family:'IBM Plex Mono', monospace; font-size:13px; margin-bottom:18px;
+  }
+  .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--violet);box-shadow:0 0 8px var(--violet);}
+  h1{font-size:clamp(32px,5vw,48px); font-weight:700; letter-spacing:-0.01em; margin:0 0 18px; max-width:16ch;}
+  header p{color:var(--muted); font-size:17px; max-width:58ch; margin:0;}
+
+  /* Hero waveform */
+  .waveform{
+    display:flex; align-items:center; gap:4px; height:64px; margin:32px 0 8px;
+  }
+  .waveform .bar{
+    width:5px; border-radius:3px;
+    background:linear-gradient(180deg, var(--teal), var(--violet));
+    animation:wave 1.4s ease-in-out infinite;
+  }
+  @keyframes wave{ 0%,100%{ transform:scaleY(.3); } 50%{ transform:scaleY(1); } }
+  .waveform .bar:nth-child(1){animation-delay:0s;height:40%;}
+  .waveform .bar:nth-child(2){animation-delay:.1s;height:70%;}
+  .waveform .bar:nth-child(3){animation-delay:.2s;height:100%;}
+  .waveform .bar:nth-child(4){animation-delay:.3s;height:55%;}
+  .waveform .bar:nth-child(5){animation-delay:.4s;height:85%;}
+  .waveform .bar:nth-child(6){animation-delay:.5s;height:35%;}
+  .waveform .bar:nth-child(7){animation-delay:.15s;height:90%;}
+  .waveform .bar:nth-child(8){animation-delay:.35s;height:50%;}
+  .waveform .bar:nth-child(9){animation-delay:.25s;height:75%;}
+  .waveform .bar:nth-child(10){animation-delay:.05s;height:45%;}
+  .waveform .bar:nth-child(11){animation-delay:.45s;height:95%;}
+  .waveform .bar:nth-child(12){animation-delay:.2s;height:60%;}
+  .waveform .bar:nth-child(13){animation-delay:.3s;height:40%;}
+  .waveform .bar:nth-child(14){animation-delay:.1s;height:80%;}
+  .waveform .bar:nth-child(15){animation-delay:.4s;height:55%;}
+  .waveform .bar:nth-child(16){animation-delay:0s;height:30%;}
+
+  .legend{display:flex; flex-wrap:wrap; gap:10px 18px; margin-top:20px; padding-top:24px; border-top:1px solid var(--border);}
+  .legend-item{display:flex; align-items:center; gap:8px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--muted);}
+  .swatch{width:10px;height:10px;border-radius:3px;flex:none;}
+
+  .pipeline{max-width:760px; margin:0 auto; padding:20px 24px 100px; position:relative;}
+  .step{position:relative; background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-m); padding:24px 26px;}
+  .connector{display:flex; justify-content:center; align-items:center; height:44px; position:relative;}
+  .connector::before{content:''; position:absolute; top:0; bottom:0; left:50%; width:2px; background:var(--border); transform:translateX(-50%);}
+  .connector svg{position:relative; z-index:1; background:var(--bg); border-radius:50%;}
+
+  .tag{display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:11px; letter-spacing:.02em; padding:4px 9px; border-radius:20px; margin-bottom:12px;}
+  .tag.llm{background:var(--teal-dim); color:var(--teal);}
+  .tag.tool{background:var(--amber-dim); color:var(--amber);}
+  .tag.gate{background:var(--amber-dim); color:var(--amber);}
+  .tag.human{background:var(--violet-dim); color:var(--violet);}
+  .tag.done{background:var(--green-dim); color:var(--green);}
+
+  .step h3{margin:0 0 6px; font-size:19px; font-weight:600;}
+  .step .desc{color:var(--muted); font-size:14.5px; margin:0 0 16px; max-width:60ch;}
+
+  .code-box{background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-s); padding:14px 16px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#B9E8E2; overflow-x:auto; margin-top:4px; white-space:pre;}
+  .code-box .k{color:#7FB8E8;} .code-box .s{color:#E8C27F;} .code-box .n{color:#6FD98F;}
+
+  .chip-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;}
+  .chip{background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); padding:10px 14px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--text);}
+  .chip .chip-label{color:var(--muted-2); display:block; font-size:11px; margin-bottom:3px;}
+
+  .btn{font-family:'IBM Plex Mono', monospace; font-size:13px; border:1px solid var(--border); background:var(--panel-2); color:var(--text); padding:9px 15px; border-radius:var(--radius-s); cursor:pointer; transition:border-color .15s ease, transform .1s ease;}
+  .btn:hover{border-color:var(--teal);}
+  .btn:active{transform:scale(.97);}
+  .btn.active{border-color:var(--teal); color:var(--teal); background:var(--teal-dim);}
+  .btn.primary{background:var(--green); color:#0B1017; border-color:var(--green); font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.warn{background:var(--amber); color:#0B1017; border-color:var(--amber); font-weight:600;}
+  .btn:disabled{opacity:.45; cursor:not-allowed;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+
+  /* Transcript selector */
+  .transcript-box{margin-top:10px; padding:14px 16px; background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-s); font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--text); min-height:44px;}
+
+  /* Confidence gauge */
+  .gauge-wrap{margin-top:18px;}
+  .gauge-track{position:relative; height:10px; border-radius:6px; background:linear-gradient(90deg, var(--coral), var(--amber), var(--green)); margin:34px 0 10px;}
+  .gauge-marker{position:absolute; top:-22px; width:2px; height:24px; background:var(--text); transform:translateX(-1px);}
+  .gauge-marker .dot{position:absolute; top:-8px; left:-6px; width:14px; height:14px; border-radius:50%; background:var(--text); border:2px solid var(--bg);}
+  .gauge-marker .label{position:absolute; top:-42px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono', monospace; font-size:11px; white-space:nowrap; color:var(--text);}
+  .threshold-marker{position:absolute; top:-6px; width:3px; height:22px; background:var(--violet); transform:translateX(-1px);}
+  .threshold-marker::after{content:'threshold'; position:absolute; bottom:-18px; left:50%; transform:translateX(-50%); font-family:'IBM Plex Mono', monospace; font-size:10.5px; color:var(--violet); white-space:nowrap;}
+  input[type=range]{width:100%; margin-top:24px; accent-color:var(--violet);}
+  .gate-status{margin-top:16px; padding:12px 14px; border-radius:var(--radius-s); font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:600;}
+  .gate-status.ok{background:var(--green-dim); color:var(--green); border:1px solid rgba(111,217,143,.35);}
+  .gate-status.needs{background:var(--violet-dim); color:var(--violet); border:1px solid rgba(180,140,242,.35);}
+
+  .branch-row{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media (max-width:620px){ .branch-row{grid-template-columns:1fr;} }
+  .branch-col{border-radius:var(--radius-m); padding:22px 20px; border:1px solid var(--border);}
+  .branch-col.confident{background:linear-gradient(180deg, rgba(111,217,143,.08), transparent); border-color:rgba(111,217,143,.35);}
+  .branch-col.unsure{background:linear-gradient(180deg, rgba(180,140,242,.08), transparent); border-color:rgba(180,140,242,.35);}
+  .branch-label{font-family:'IBM Plex Mono', monospace; font-size:12px; margin-bottom:10px; display:flex; align-items:center; gap:6px;}
+  .branch-col.confident .branch-label{color:var(--green);}
+  .branch-col.unsure .branch-label{color:var(--violet);}
+
+  .cal-chip{display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius-s); padding:12px 14px; font-family:'IBM Plex Mono', monospace; font-size:13px; margin-top:10px;}
+  .cal-chip .status{font-weight:600;}
+  .cal-chip .status.free{color:var(--green);}
+  .cal-chip .status.booked{color:var(--coral);}
+
+  .confirm-outcome{margin-top:14px; padding:12px 14px; border-radius:var(--radius-s); font-family:'IBM Plex Mono', monospace; font-size:13px; font-weight:600; display:none;}
+  .confirm-outcome.show{display:block;}
+  .confirm-outcome.ok{background:var(--green-dim); color:var(--green); border:1px solid rgba(111,217,143,.35);}
+  .confirm-outcome.warn{background:var(--amber-dim); color:var(--amber); border:1px solid rgba(232,163,61,.35);}
+
+  footer{max-width:760px; margin:0 auto; padding:0 24px 80px;}
+  .recap-title{font-size:22px; font-weight:600; margin-bottom:14px;}
+  table.recap{width:100%; border-collapse:collapse; margin-bottom:28px;}
+  table.recap th, table.recap td{text-align:left; padding:12px 14px; border-bottom:1px solid var(--border); font-size:14px; color:var(--muted);}
+  table.recap th{color:var(--text); font-family:'IBM Plex Mono', monospace; font-size:12px;}
+  .takeaway{background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--violet); border-radius:var(--radius-s); padding:18px 20px; font-size:15px; color:var(--text);}
+  .takeaway strong{color:var(--violet);}
+
+  @media (prefers-reduced-motion: reduce){
+    .waveform .bar{animation:none; transform:scaleY(.6);}
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker"><span class="dot"></span>AGENTIC AI LAB · WORKFLOW 02</div>
+  <h1>Voice-to-Action Campus Assistant</h1>
+  <p>"Book me the seminar hall for Friday 3pm" — spoken aloud. A walk through the multimodal pipeline: speech-to-text, structured intent with self-reported confidence, a code-level confidence gate, and a human checkpoint before anything real happens.</p>
+
+  <div class="waveform" aria-hidden="true">
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch" style="background:var(--teal)"></span>LLM reasoning / structured output</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--amber)"></span>Deterministic code / tool call</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--violet)"></span>Human-in-the-loop checkpoint</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--green)"></span>Final committed action</div>
+  </div>
+</header>
+
+<div class="pipeline">
+
+  <!-- STEP 1: input selector -->
+  <div class="step">
+    <span class="tag human">VOICE INPUT</span>
+    <h3>Pick a sample instruction</h3>
+    <p class="desc">Three real transcripts from the notebook — same underlying speech pipeline, different amounts of usable signal.</p>
+    <div class="btn-row" id="transcript-buttons">
+      <button class="btn active" data-t="clear">🟢 Clear</button>
+      <button class="btn" data-t="filler">🟡 Filler-heavy</button>
+      <button class="btn" data-t="ambiguous">🔴 Ambiguous</button>
+    </div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 2: STT -->
+  <div class="step">
+    <span class="tag llm">SPEECH-TO-TEXT</span>
+    <h3>Raw transcript</h3>
+    <p class="desc">The first lossy stage — before any reasoning even starts.</p>
+    <div class="transcript-box" id="transcript-text"></div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 3: intent extractor -->
+  <div class="step">
+    <span class="tag llm">STRUCTURED OUTPUT + CONFIDENCE</span>
+    <h3>Intent Extractor Agent</h3>
+    <p class="desc">Forces a fixed schema, including a self-reported confidence score and a list of what's missing.</p>
+    <div class="code-box" id="intent-json"></div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 4: gate -->
+  <div class="step" style="border-color:rgba(232,163,61,.4);">
+    <span class="tag gate">DETERMINISTIC — NOT MODEL JUDGMENT</span>
+    <h3>Confidence Gate</h3>
+    <p class="desc">A real code-level check: <code class="mono">confidence &gt;= threshold AND missing_fields == []</code>. Drag the threshold and watch the gate decision change live.</p>
+
+    <div class="gauge-wrap">
+      <div class="gauge-track" id="gauge-track">
+        <div class="threshold-marker" id="threshold-marker" style="left:70%;"></div>
+        <div class="gauge-marker" id="confidence-marker" style="left:96%;">
+          <div class="dot"></div>
+          <div class="label" id="confidence-label">0.96</div>
+        </div>
+      </div>
+      <input type="range" min="0" max="100" value="70" id="threshold-slider" aria-label="Confidence threshold">
+    </div>
+
+    <div class="gate-status ok" id="gate-status">✅ Confident enough — proceed to booking</div>
+  </div>
+
+  <div class="connector" style="height:32px;">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- BRANCH -->
+  <div class="branch-row" id="branch-row">
+    <div class="branch-col unsure" id="branch-unsure">
+      <div class="branch-label">🤔 NEEDS CLARIFICATION</div>
+      <h3 style="margin:0 0 8px; font-size:16px;">Ask a follow-up question</h3>
+      <p class="desc" style="margin:0 0 10px;">Loops back to the user instead of guessing — never proceeds on a hunch.</p>
+      <div class="code-box" id="followup-text" style="color:var(--violet);">—</div>
+    </div>
+    <div class="branch-col confident" id="branch-confident">
+      <div class="branch-label">✅ CONFIDENT</div>
+      <h3 style="margin:0 0 8px; font-size:16px;">Availability Check</h3>
+      <p class="desc" style="margin:0 0 6px;">Deterministic lookup — never the model's judgment.</p>
+      <div class="cal-chip">
+        <span>Seminar Hall · Fri 3pm</span>
+        <span class="status free">✅ Free</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP: confirm -->
+  <div class="step" style="border-color:rgba(180,140,242,.4);">
+    <span class="tag human">SELF-CONFIRM HITL GATE</span>
+    <h3>Human Confirmation</h3>
+    <p class="desc">Booking is a side effect — the same person who spoke the request confirms the <em>interpreted</em> version before it becomes real.</p>
+    <div class="chip-row" style="margin-bottom:10px;">
+      <div class="chip"><span class="chip-label">INTERPRETED REQUEST</span>Seminar Hall · Friday · 3pm</div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" id="confirm-btn">Confirm booking</button>
+      <button class="btn" id="confirm-reset">Reset demo</button>
+    </div>
+    <div class="confirm-outcome" id="confirm-outcome"></div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="recap-title">What this teaches</div>
+  <table class="recap">
+    <tr><th>Layer</th><th>Production meaning</th></tr>
+    <tr><td>Speech-to-text</td><td>A multimodal pipeline stage that's lossy before any reasoning starts</td></tr>
+    <tr><td>Confidence + missing fields</td><td>Make the model self-report uncertainty as data, not vibes in prose</td></tr>
+    <tr><td>Confidence gate</td><td>The act-vs-ask branch must be a real check in code</td></tr>
+    <tr><td>Confirm + idempotency</td><td>Side-effecting actions get a human checkpoint and a re-run-safe guard</td></tr>
+  </table>
+  <div class="takeaway">
+    <strong>Takeaway —</strong> every stage of a multimodal pipeline can silently lose information. The agent's job isn't just "understand the words" — it's "know when it doesn't know," and only act once it does.
+  </div>
+</footer>
+
+<script>
+(function(){
+  const transcripts = {
+    clear: {
+      text: "Please book the seminar hall for Friday at 3 PM.",
+      room: "seminar hall", day: "friday", time: "3 pm",
+      confidence: 0.96, missing: []
+    },
+    filler: {
+      text: "So, uh, I was thinking, could you maybe, like, book the seminar hall, uh, for Friday, 3 pm, if that's cool?",
+      room: "seminar hall", day: "friday", time: "3 pm",
+      confidence: 0.89, missing: []
+    },
+    ambiguous: {
+      text: "Um, yeah, book that place for the thing tomorrow, sometime in the afternoon I guess.",
+      room: "", day: "", time: "",
+      confidence: 0.28, missing: ["room", "time"]
+    }
+  };
+
+  let currentKey = 'clear';
+  let threshold = 70;
+
+  const $transcriptText = document.getElementById('transcript-text');
+  const $intentJson = document.getElementById('intent-json');
+  const $confMarker = document.getElementById('confidence-marker');
+  const $confLabel = document.getElementById('confidence-label');
+  const $thresholdMarker = document.getElementById('threshold-marker');
+  const $thresholdSlider = document.getElementById('threshold-slider');
+  const $gateStatus = document.getElementById('gate-status');
+  const $branchUnsure = document.getElementById('branch-unsure');
+  const $branchConfident = document.getElementById('branch-confident');
+  const $followupText = document.getElementById('followup-text');
+  const $transcriptButtons = document.querySelectorAll('#transcript-buttons .btn');
+
+  const followupQuestions = {
+    room: "Which room would you like to book?",
+    time: "What time works for you?",
+    both: "Which room did you mean, and what time works for you?"
+  };
+
+  function render(){
+    const t = transcripts[currentKey];
+    $transcriptText.textContent = '"' + t.text + '"';
+
+    const missingStr = t.missing.length ? '[' + t.missing.map(m => '"' + m + '"').join(', ') + ']' : '[]';
+    $intentJson.innerHTML =
+      '<span class="k">{</span>\n' +
+      '  <span class="s">"room"</span>: <span class="s">"' + t.room + '"</span>,\n' +
+      '  <span class="s">"day"</span>: <span class="s">"' + t.day + '"</span>,\n' +
+      '  <span class="s">"time"</span>: <span class="s">"' + t.time + '"</span>,\n' +
+      '  <span class="s">"confidence"</span>: <span class="n">' + t.confidence + '</span>,\n' +
+      '  <span class="s">"missing_or_ambiguous_fields"</span>: ' + missingStr + '\n' +
+      '<span class="k">}</span>';
+
+    const confPct = Math.round(t.confidence * 100);
+    $confMarker.style.left = confPct + '%';
+    $confLabel.textContent = t.confidence.toFixed(2);
+    $thresholdMarker.style.left = threshold + '%';
+
+    const needsClarification = (t.confidence * 100 < threshold) || t.missing.length > 0;
+
+    if (needsClarification){
+      $gateStatus.className = 'gate-status needs';
+      $gateStatus.textContent = '🤔 Needs clarification — confidence ' + t.confidence.toFixed(2) +
+        (t.confidence*100 < threshold ? ' is below threshold ' + (threshold/100).toFixed(2) : '') +
+        (t.missing.length ? ', missing: ' + t.missing.join(', ') : '');
+      $branchUnsure.style.opacity = '1';
+      $branchConfident.style.opacity = '.35';
+      let q = t.missing.length === 2 ? followupQuestions.both : followupQuestions[t.missing[0]] || "Could you clarify what you meant?";
+      $followupText.textContent = '"' + q + '"';
+    } else {
+      $gateStatus.className = 'gate-status ok';
+      $gateStatus.textContent = '✅ Confident enough (' + t.confidence.toFixed(2) + ' ≥ ' + (threshold/100).toFixed(2) + ') — proceed to booking';
+      $branchUnsure.style.opacity = '.35';
+      $branchConfident.style.opacity = '1';
+      $followupText.textContent = '—';
+    }
+  }
+
+  $transcriptButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      $transcriptButtons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentKey = btn.dataset.t;
+      render();
+    });
+  });
+
+  $thresholdSlider.addEventListener('input', (e) => {
+    threshold = parseInt(e.target.value, 10);
+    render();
+  });
+
+  render();
+
+  // Confirm + idempotency demo
+  const $confirmBtn = document.getElementById('confirm-btn');
+  const $confirmOutcome = document.getElementById('confirm-outcome');
+  const $confirmReset = document.getElementById('confirm-reset');
+  let booked = false;
+
+  $confirmBtn.addEventListener('click', () => {
+    if (!booked){
+      booked = true;
+      $confirmOutcome.className = 'confirm-outcome show ok';
+      $confirmOutcome.textContent = '✅ Booked: Seminar Hall, Friday 3pm for You.';
+      $confirmBtn.textContent = 'Confirm again (test idempotency)';
+    } else {
+      $confirmOutcome.className = 'confirm-outcome show warn';
+      $confirmOutcome.textContent = '⚠️ Already booked by You — idempotency check caught this. No duplicate booking created.';
+    }
+  });
+
+  $confirmReset.addEventListener('click', () => {
+    booked = false;
+    $confirmOutcome.className = 'confirm-outcome';
+    $confirmOutcome.textContent = '';
+    $confirmBtn.textContent = 'Confirm booking';
+  });
+})();
+</script>
+
+</body>
+</html>

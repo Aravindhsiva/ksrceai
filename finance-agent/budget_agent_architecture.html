@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Budget Agent — Architecture Walkthrough</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1620;
+    --bg-alt:#0B1017;
+    --panel:#161F2B;
+    --panel-2:#1B2632;
+    --border:#28374A;
+    --text:#E7EDF3;
+    --muted:#8CA0B4;
+    --muted-2:#5E7285;
+    --teal:#49D6C8;
+    --teal-dim:rgba(73,214,200,.14);
+    --amber:#E8A33D;
+    --amber-dim:rgba(232,163,61,.14);
+    --violet:#B48CF2;
+    --violet-dim:rgba(180,140,242,.14);
+    --green:#6FD98F;
+    --green-dim:rgba(111,217,143,.14);
+    --coral:#F16D6D;
+    --coral-dim:rgba(241,109,109,.14);
+    --radius-s:8px;
+    --radius-m:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 15% 8%, rgba(73,214,200,.06), transparent 40%),
+      radial-gradient(circle at 85% 92%, rgba(232,163,61,.05), transparent 45%);
+    color:var(--text);
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace;}
+  a{color:var(--teal);}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:3px; border-radius:4px;}
+
+  /* ---------- Header ---------- */
+  header{
+    padding:64px 24px 40px;
+    max-width:840px;
+    margin:0 auto;
+    text-align:left;
+  }
+  .kicker{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    color:var(--muted);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    margin-bottom:18px;
+  }
+  .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);}
+  h1{
+    font-size:clamp(32px,5vw,48px);
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0 0 18px;
+    max-width:14ch;
+  }
+  header p{
+    color:var(--muted);
+    font-size:17px;
+    max-width:58ch;
+    margin:0;
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px 18px;
+    margin-top:32px;
+    padding-top:28px;
+    border-top:1px solid var(--border);
+  }
+  .legend-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--muted);
+  }
+  .swatch{width:10px;height:10px;border-radius:3px;flex:none;}
+
+  /* ---------- Pipeline shell ---------- */
+  .pipeline{
+    max-width:760px;
+    margin:0 auto;
+    padding:20px 24px 100px;
+    position:relative;
+  }
+  .step{
+    position:relative;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:var(--radius-m);
+    padding:24px 26px;
+    margin-bottom:0;
+  }
+  .connector{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:44px;
+    position:relative;
+  }
+  .connector::before{
+    content:'';
+    position:absolute;
+    top:0; bottom:0; left:50%;
+    width:2px;
+    background:linear-gradient(to bottom, var(--border), var(--border));
+    transform:translateX(-50%);
+  }
+  .connector svg{position:relative; z-index:1; background:var(--bg); border-radius:50%;}
+
+  .tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.02em;
+    padding:4px 9px;
+    border-radius:20px;
+    margin-bottom:12px;
+  }
+  .tag.llm{background:var(--teal-dim); color:var(--teal);}
+  .tag.tool{background:var(--amber-dim); color:var(--amber);}
+  .tag.gate{background:var(--amber-dim); color:var(--amber);}
+  .tag.human{background:var(--violet-dim); color:var(--violet);}
+  .tag.done{background:var(--green-dim); color:var(--green);}
+
+  .step h3{margin:0 0 6px; font-size:19px; font-weight:600;}
+  .step .desc{color:var(--muted); font-size:14.5px; margin:0 0 16px; max-width:60ch;}
+
+  .chip-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;}
+  .chip{
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-radius:var(--radius-s);
+    padding:10px 14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--text);
+  }
+  .chip .chip-label{color:var(--muted-2); display:block; font-size:11px; margin-bottom:3px;}
+
+  .code-box{
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-radius:var(--radius-s);
+    padding:14px 16px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:#B9E8E2;
+    overflow-x:auto;
+    margin-top:4px;
+    white-space:pre;
+  }
+  .code-box .k{color:#7FB8E8;}
+  .code-box .s{color:#E8C27F;}
+  .code-box .n{color:#6FD98F;}
+
+  /* Branch layout */
+  .branch-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:0;
+  }
+  @media (max-width:620px){ .branch-row{grid-template-columns:1fr;} }
+  .branch-col{
+    border-radius:var(--radius-m);
+    padding:22px 20px;
+    border:1px solid var(--border);
+  }
+  .branch-col.feasible{background:linear-gradient(180deg, rgba(111,217,143,.08), transparent); border-color:rgba(111,217,143,.35);}
+  .branch-col.not-feasible{background:linear-gradient(180deg, rgba(73,214,200,.07), transparent); border-color:rgba(73,214,200,.3);}
+  .branch-label{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    text-transform:none;
+    margin-bottom:10px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .branch-col.feasible .branch-label{color:var(--green);}
+  .branch-col.not-feasible .branch-label{color:var(--teal);}
+
+  .loop-badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--amber);
+    background:var(--amber-dim);
+    padding:5px 10px;
+    border-radius:20px;
+    margin:10px 0 14px;
+  }
+  .btn{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    border:1px solid var(--border);
+    background:var(--panel-2);
+    color:var(--text);
+    padding:10px 16px;
+    border-radius:var(--radius-s);
+    cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .btn:hover{border-color:var(--teal);}
+  .btn:active{transform:scale(.97);}
+  .btn.primary{background:var(--teal); color:#0B1017; border-color:var(--teal); font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.ghost{background:transparent;}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;}
+
+  .sim-log{margin-top:14px; display:flex; flex-direction:column; gap:8px;}
+  .sim-line{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--muted);
+    padding:9px 12px;
+    background:var(--bg-alt);
+    border:1px solid var(--border);
+    border-left:3px solid var(--teal);
+    border-radius:6px;
+    opacity:0;
+    animation:slideIn .3s ease forwards;
+  }
+  @keyframes slideIn{ from{opacity:0; transform:translateX(-6px);} to{opacity:1; transform:translateX(0);} }
+  .sim-status{
+    margin-top:14px;
+    padding:12px 14px;
+    border-radius:var(--radius-s);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    display:none;
+  }
+  .sim-status.show{display:block;}
+  .sim-status.ok{background:var(--green-dim); color:var(--green); border:1px solid rgba(111,217,143,.35);}
+  .sim-status.fail{background:var(--coral-dim); color:var(--coral); border:1px solid rgba(241,109,109,.35);}
+
+  .scenario-toggle{
+    display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;
+  }
+  .scenario-toggle button.active{border-color:var(--teal); color:var(--teal);}
+
+  footer{
+    max-width:760px;
+    margin:0 auto;
+    padding:0 24px 80px;
+  }
+  .recap-title{font-size:22px; font-weight:600; margin-bottom:14px;}
+  table.recap{width:100%; border-collapse:collapse; margin-bottom:28px;}
+  table.recap th, table.recap td{
+    text-align:left; padding:12px 14px; border-bottom:1px solid var(--border);
+    font-size:14px; color:var(--muted);
+  }
+  table.recap th{color:var(--text); font-family:'IBM Plex Mono', monospace; font-size:12px;}
+  .takeaway{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-left:3px solid var(--amber);
+    border-radius:var(--radius-s);
+    padding:18px 20px;
+    font-size:15px;
+    color:var(--text);
+  }
+  .takeaway strong{color:var(--amber);}
+
+  @media (prefers-reduced-motion: reduce){
+    .sim-line{animation:none; opacity:1;}
+    *{transition:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="kicker"><span class="dot"></span>AGENTIC AI LAB · WORKFLOW 01</div>
+  <h1>Personal Finance Budget Agent</h1>
+  <p>"Can I afford this trip on my stipend?" — a walk through the exact loop: structured output, a deterministic calculator tool, and a bounded constraint-satisfaction loop that knows when to stop.</p>
+
+  <div class="legend">
+    <div class="legend-item"><span class="swatch" style="background:var(--teal)"></span>LLM reasoning / structured output</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--amber)"></span>Deterministic code / tool call</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--green)"></span>Final outcome</div>
+    <div class="legend-item"><span class="swatch" style="background:var(--coral)"></span>Bounded-loop exhausted</div>
+  </div>
+</header>
+
+<div class="pipeline">
+
+  <!-- STEP 1 -->
+  <div class="step">
+    <span class="tag human">USER INPUT</span>
+    <h3>Raw, messy request</h3>
+    <p class="desc">No structure, no numbers guaranteed to be complete — just natural language.</p>
+    <div class="code-box">"Can I afford a 3-day Goa trip on ₹8000 stipend, already spending ₹5000 on rent+food?"</div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+    <span class="tag llm">STRUCTURED OUTPUT</span>
+    <h3>Intent Parser Agent</h3>
+    <p class="desc">Forces the model to return a fixed JSON shape — parseable by code, not free text.</p>
+    <div class="code-box"><span class="k">{</span>
+  <span class="s">"monthly_income"</span>: <span class="n">8000</span>,
+  <span class="s">"fixed_monthly_costs"</span>: <span class="n">5000</span>,
+  <span class="s">"destination"</span>: <span class="s">"Goa"</span>,
+  <span class="s">"trip_duration_days"</span>: <span class="n">3</span>,
+  <span class="s">"hard_constraints"</span>: []
+<span class="k">}</span></div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+    <span class="tag tool">TOOL USE</span>
+    <h3>Cost Estimator</h3>
+    <p class="desc">Any deterministic computation is delegated — never left to the model's own arithmetic.</p>
+    <div class="chip-row">
+      <div class="chip"><span class="chip-label">TOOL</span>estimate_trip_cost(destination, days)</div>
+      <div class="chip"><span class="chip-label">TOOL</span>calculator(expression)</div>
+    </div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- STEP 4: Decision -->
+  <div class="step" style="text-align:center; border-color:rgba(232,163,61,.4);">
+    <span class="tag gate">DETERMINISTIC — NOT MODEL JUDGMENT</span>
+    <h3>Feasibility Check</h3>
+    <p class="desc" style="margin:0 auto;">A plain Python comparison: <code class="mono">estimated_cost &lt;= available_budget</code>. Never trust the model to self-judge this.</p>
+  </div>
+
+  <!-- BRANCH -->
+  <div class="connector" style="height:32px;">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <div class="branch-row">
+    <div class="branch-col feasible">
+      <div class="branch-label">✅ FEASIBLE</div>
+      <h3 style="margin:0 0 8px; font-size:16px;">Return verdict</h3>
+      <p class="desc" style="margin:0;">Straight through — no adjustments needed. Loop exits on iteration 1.</p>
+    </div>
+    <div class="branch-col not-feasible">
+      <div class="branch-label">↻ NOT FEASIBLE</div>
+      <h3 style="margin:0 0 8px; font-size:16px;">Constraint Solver Agent</h3>
+      <p class="desc" style="margin:0 0 6px;">Proposes <em>one</em> trade-off, applies it deterministically, then loops back to re-check feasibility.</p>
+      <div class="loop-badge">⏱ bounded — max 4 iterations</div>
+    </div>
+  </div>
+
+  <!-- SIMULATOR -->
+  <div class="step" style="margin-top:18px; border-color:rgba(73,214,200,.3);">
+    <span class="tag llm">LIVE SIMULATION</span>
+    <h3>Watch the bounded loop run</h3>
+    <p class="desc">Same numbers as the notebook. Step through the loop yourself, one iteration at a time.</p>
+
+    <div class="scenario-toggle">
+      <button class="btn" id="scenario-typical">Typical case (₹3000 budget)</button>
+      <button class="btn" id="scenario-tough">Tough case (₹1500 budget)</button>
+    </div>
+
+    <div class="chip-row" style="margin-bottom:14px;">
+      <div class="chip"><span class="chip-label">AVAILABLE BUDGET</span><span id="sim-budget">₹3000</span></div>
+      <div class="chip"><span class="chip-label">CURRENT ESTIMATED COST</span><span id="sim-cost">₹4650</span></div>
+      <div class="chip"><span class="chip-label">ITERATIONS USED</span><span id="sim-iter">0 / 4</span></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn primary" id="sim-step">Step forward one iteration →</button>
+      <button class="btn ghost" id="sim-reset">Reset</button>
+    </div>
+
+    <div class="sim-log" id="sim-log"></div>
+    <div class="sim-status" id="sim-status"></div>
+  </div>
+
+  <div class="connector">
+    <svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L10 16 M4 12 L10 18 L16 12" stroke="#28374A" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </div>
+
+  <!-- FINAL -->
+  <div class="step" style="border-color:rgba(111,217,143,.4);">
+    <span class="tag done">FINAL OUTPUT</span>
+    <h3>Structured JSON verdict</h3>
+    <p class="desc">Whatever happened above, the shape never changes — that's the contract the rest of your app relies on.</p>
+    <div class="code-box" id="final-json"><span class="k">{</span>
+  <span class="s">"feasible"</span>: <span class="n">null</span>,
+  <span class="s">"estimated_cost"</span>: <span class="n">4650</span>,
+  <span class="s">"available_budget"</span>: <span class="n">3000</span>,
+  <span class="s">"recommendations_applied"</span>: [],
+  <span class="s">"verdict"</span>: <span class="s">"Run the simulation above ↑"</span>
+<span class="k">}</span></div>
+  </div>
+
+</div>
+
+<footer>
+  <div class="recap-title">What this teaches</div>
+  <table class="recap">
+    <tr><th>Layer</th><th>Production meaning</th></tr>
+    <tr><td>Structured output</td><td>Contract between the LLM and the rest of your codebase</td></tr>
+    <tr><td>Tool use</td><td>Delegate anything deterministic — never trust the model's own arithmetic</td></tr>
+    <tr><td>Constraint loop</td><td>Real agents solve for a goal under limits, with a bounded stop</td></tr>
+  </table>
+  <div class="takeaway">
+    <strong>Takeaway —</strong> an agent is a loop around an LLM, where the model makes judgment calls and your code enforces ground truth, structure, and stopping conditions.
+  </div>
+</footer>
+
+<script>
+(function(){
+  const scenarios = {
+    typical: {
+      budget: 3000,
+      startCost: 4650,
+      recs: [
+        {change:"Switch stay: hotel → hostel", savings:800},
+        {change:"Switch travel: flight → bus", savings:1000},
+        {change:"Cut trip by 1 day", savings:700},
+        {change:"Switch food: restaurants → mess", savings:300}
+      ]
+    },
+    tough: {
+      budget: 1500,
+      startCost: 4650,
+      recs: [
+        {change:"Switch stay: hotel → hostel", savings:800},
+        {change:"Switch travel: flight → bus", savings:1000},
+        {change:"Cut trip by 1 day", savings:700},
+        {change:"Switch food: restaurants → mess", savings:300}
+      ]
+    }
+  };
+
+  let current = 'typical';
+  let cost, iter, applied, done;
+
+  const $budget = document.getElementById('sim-budget');
+  const $cost = document.getElementById('sim-cost');
+  const $iter = document.getElementById('sim-iter');
+  const $log = document.getElementById('sim-log');
+  const $status = document.getElementById('sim-status');
+  const $stepBtn = document.getElementById('sim-step');
+  const $finalJson = document.getElementById('final-json');
+  const $tabTypical = document.getElementById('scenario-typical');
+  const $tabTough = document.getElementById('scenario-tough');
+
+  function resetState(){
+    const s = scenarios[current];
+    cost = s.startCost;
+    iter = 0;
+    applied = [];
+    done = false;
+    $budget.textContent = '₹' + s.budget;
+    $cost.textContent = '₹' + cost;
+    $iter.textContent = '0 / 4';
+    $log.innerHTML = '';
+    $status.className = 'sim-status';
+    $status.textContent = '';
+    $stepBtn.disabled = false;
+    updateFinalJson(null, []);
+    $tabTypical.classList.toggle('active', current === 'typical');
+    $tabTough.classList.toggle('active', current === 'tough');
+  }
+
+  function addLog(text){
+    const line = document.createElement('div');
+    line.className = 'sim-line';
+    line.textContent = text;
+    $log.appendChild(line);
+  }
+
+  function updateFinalJson(feasible, recs){
+    const s = scenarios[current];
+    let verdict;
+    if (feasible === null) verdict = "Run the simulation above ↑";
+    else if (feasible) verdict = recs.length ? "Affordable after adjustments" : "Affordable";
+    else verdict = "Not affordable even after adjustments — consider a shorter or cheaper trip";
+
+    const recsStr = recs.length
+      ? '[\n' + recs.map(r => '    { "change": "' + r.change + '", "savings": ' + r.savings + ' }').join(',\n') + '\n  ]'
+      : '[]';
+
+    $finalJson.innerHTML =
+      '<span class="k">{</span>\n' +
+      '  <span class="s">"feasible"</span>: <span class="n">' + (feasible === null ? 'null' : feasible) + '</span>,\n' +
+      '  <span class="s">"estimated_cost"</span>: <span class="n">' + cost + '</span>,\n' +
+      '  <span class="s">"available_budget"</span>: <span class="n">' + s.budget + '</span>,\n' +
+      '  <span class="s">"recommendations_applied"</span>: ' + recsStr + ',\n' +
+      '  <span class="s">"verdict"</span>: <span class="s">"' + verdict + '"</span>\n' +
+      '<span class="k">}</span>';
+  }
+
+  function step(){
+    if (done) return;
+    const s = scenarios[current];
+
+    if (cost <= s.budget){
+      $status.className = 'sim-status show ok';
+      $status.textContent = '✅ Feasible — loop exits on iteration ' + iter + '. No more changes needed.';
+      done = true;
+      $stepBtn.disabled = true;
+      updateFinalJson(true, applied);
+      return;
+    }
+
+    if (iter >= 4){
+      $status.className = 'sim-status show fail';
+      $status.textContent = '⏱ Bounded loop exhausted (4/4) — honestly reports "not affordable" instead of looping forever.';
+      done = true;
+      $stepBtn.disabled = true;
+      updateFinalJson(false, applied);
+      return;
+    }
+
+    const rec = s.recs[iter];
+    iter += 1;
+    cost -= rec.savings;
+    applied.push(rec);
+    addLog('Iteration ' + iter + ': "' + rec.change + '" → saves ₹' + rec.savings + '. New cost: ₹' + cost);
+    $cost.textContent = '₹' + cost;
+    $iter.textContent = iter + ' / 4';
+
+    if (cost <= s.budget){
+      $status.className = 'sim-status show ok';
+      $status.textContent = '✅ Feasible after ' + iter + ' adjustment(s) — cost ₹' + cost + ' fits budget ₹' + s.budget + '.';
+      done = true;
+      $stepBtn.disabled = true;
+      updateFinalJson(true, applied);
+    } else if (iter >= 4){
+      $status.className = 'sim-status show fail';
+      $status.textContent = '⏱ Bounded loop exhausted (4/4) — still ₹' + (cost - s.budget) + ' over budget. Reports "not affordable" instead of looping forever.';
+      done = true;
+      $stepBtn.disabled = true;
+      updateFinalJson(false, applied);
+    }
+  }
+
+  $stepBtn.addEventListener('click', step);
+  document.getElementById('sim-reset').addEventListener('click', resetState);
+  $tabTypical.addEventListener('click', () => { current = 'typical'; resetState(); });
+  $tabTough.addEventListener('click', () => { current = 'tough'; resetState(); });
+
+  resetState();
+})();
+</script>
+
+</body>
+</html>
