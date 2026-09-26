@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Introduction to LLMs & Agentic AI — Course Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1620;
+    --bg-alt:#0B1017;
+    --panel:#161F2B;
+    --panel-2:#1B2632;
+    --border:#28374A;
+    --text:#E7EDF3;
+    --muted:#8CA0B4;
+    --muted-2:#5E7285;
+    --teal:#49D6C8;
+    --teal-dim:rgba(73,214,200,.14);
+    --amber:#E8A33D;
+    --amber-dim:rgba(232,163,61,.14);
+    --violet:#B48CF2;
+    --violet-dim:rgba(180,140,242,.14);
+    --green:#6FD98F;
+    --green-dim:rgba(111,217,143,.14);
+    --coral:#F16D6D;
+    --coral-dim:rgba(241,109,109,.14);
+    --radius-s:8px;
+    --radius-m:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 6%, rgba(73,214,200,.06), transparent 42%),
+      radial-gradient(circle at 88% 94%, rgba(180,140,242,.05), transparent 45%);
+    color:var(--text);
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'IBM Plex Mono', 'SF Mono', Consolas, monospace;}
+  a{color:var(--teal); text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  :focus-visible{outline:2px solid var(--teal); outline-offset:3px; border-radius:4px;}
+
+  /* ---------- Top nav ---------- */
+  nav.top{
+    position:sticky; top:0; z-index:10;
+    display:flex; gap:18px; align-items:center;
+    padding:14px 24px;
+    background:rgba(15,22,32,.85);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+  }
+  nav.top .brand{color:var(--text); font-weight:600; margin-right:auto;}
+  nav.top a{color:var(--muted);}
+  nav.top a:hover{color:var(--teal); text-decoration:none;}
+
+  /* ---------- Header ---------- */
+  header{
+    padding:64px 24px 40px;
+    max-width:880px;
+    margin:0 auto;
+  }
+  .kicker{
+    display:inline-flex; align-items:center; gap:8px;
+    color:var(--muted); font-family:'IBM Plex Mono', monospace; font-size:13px; margin-bottom:18px;
+  }
+  .kicker .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal);}
+  h1{font-size:clamp(32px,5vw,48px); font-weight:700; letter-spacing:-0.01em; margin:0 0 18px; max-width:20ch;}
+  header > p{color:var(--muted); font-size:17px; max-width:62ch; margin:0;}
+
+  .lab-cards{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:34px;}
+  @media (max-width:620px){ .lab-cards{grid-template-columns:1fr;} }
+  .lab-card{
+    display:block;
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:20px 22px; transition:border-color .15s ease, transform .1s ease;
+  }
+  .lab-card:hover{border-color:var(--teal); transform:translateY(-2px); text-decoration:none;}
+  .lab-card .lab-kicker{font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--muted-2); margin-bottom:8px;}
+  .lab-card h4{margin:0 0 6px; font-size:17px; color:var(--text);}
+  .lab-card p{margin:0; font-size:13.5px; color:var(--muted);}
+
+  /* ---------- Section shell ---------- */
+  main{max-width:880px; margin:0 auto; padding:10px 24px 100px;}
+  section{margin-top:64px; scroll-margin-top:70px;}
+  .section-kicker{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'IBM Plex Mono', monospace; font-size:12px; letter-spacing:.04em;
+    color:var(--muted); text-transform:uppercase; margin-bottom:10px;
+  }
+  .section-kicker .num{
+    width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--teal-dim); color:var(--teal); font-size:11px;
+  }
+  section h2{font-size:26px; font-weight:700; margin:0 0 14px;}
+  section > p.lead{color:var(--muted); font-size:15.5px; max-width:66ch; margin:0 0 24px;}
+
+  /* ---------- Panels / cards ---------- */
+  .panel{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:22px 24px; margin-bottom:16px;
+  }
+  .panel h3{margin:0 0 8px; font-size:16.5px;}
+  .panel p{margin:0; color:var(--muted); font-size:14.5px;}
+
+  .code-box{
+    background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius-s);
+    padding:14px 16px; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:#B9E8E2;
+    overflow-x:auto; margin-top:10px; white-space:pre;
+  }
+  .code-box .k{color:#7FB8E8;} .code-box .s{color:#E8C27F;} .code-box .n{color:#6FD98F;} .code-box .c{color:var(--muted-2);}
+
+  .tag{display:inline-flex; align-items:center; gap:6px; font-family:'IBM Plex Mono', monospace; font-size:10.5px; letter-spacing:.02em; padding:3px 8px; border-radius:20px;}
+  .tag.can{background:var(--green-dim); color:var(--green);}
+  .tag.cannot{background:var(--coral-dim); color:var(--coral);}
+  .tag.used{background:var(--teal-dim); color:var(--teal); margin-top:10px;}
+
+  .card-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:620px){ .card-grid{grid-template-columns:1fr;} }
+  .card{
+    background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-m);
+    padding:18px 20px;
+  }
+  .card h4{margin:0 0 6px; font-size:15px; display:flex; align-items:center; gap:8px;}
+  .card p{margin:0; color:var(--muted); font-size:13.5px;}
+  .card.cannot-card{border-color:rgba(241,109,109,.3); background:linear-gradient(180deg, rgba(241,109,109,.06), transparent);}
+  .card.can-card{border-color:rgba(111,217,143,.3); background:linear-gradient(180deg, rgba(111,217,143,.06), transparent);}
+
+  /* ---------- Analogy box ---------- */
+  .analogy{
+    border-left:3px solid var(--violet); background:var(--panel); border:1px solid var(--border);
+    border-left:3px solid var(--violet); border-radius:var(--radius-s); padding:18px 20px; font-size:14.5px; color:var(--text);
+  }
+  .analogy strong{color:var(--violet);}
+
+  /* ---------- Sample toggles ---------- */
+  .sample{background:var(--panel); border:1px solid var(--border); border-radius:var(--radius-m); padding:22px 24px; margin-bottom:20px;}
+  .sample h3{margin:0 0 6px; font-size:16.5px;}
+  .sample .sample-desc{color:var(--muted); font-size:13.5px; margin:0 0 14px;}
+  .toggle-row{display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;}
+  .btn{
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px;
+    border:1px solid var(--border); background:var(--panel-2); color:var(--text);
+    padding:8px 14px; border-radius:var(--radius-s); cursor:pointer;
+    transition:border-color .15s ease, transform .1s ease;
+  }
+  .btn:hover{border-color:var(--teal);}
+  .btn:active{transform:scale(.97);}
+  .btn.active{border-color:var(--teal); color:var(--teal); background:var(--teal-dim);}
+  .sample-output{min-height:20px;}
+  .verdict-line{
+    margin-top:12px; padding:10px 14px; border-radius:var(--radius-s);
+    font-family:'IBM Plex Mono', monospace; font-size:12.5px; font-weight:600;
+  }
+  .verdict-line.bad{background:var(--coral-dim); color:var(--coral); border:1px solid rgba(241,109,109,.35);}
+  .verdict-line.good{background:var(--green-dim); color:var(--green); border:1px solid rgba(111,217,143,.35);}
+
+  footer{max-width:880px; margin:0 auto; padding:0 24px 80px;}
+  .takeaway{
+    background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--teal);
+    border-radius:var(--radius-s); padding:18px 20px; font-size:15px; color:var(--text); margin-bottom:20px;
+  }
+  .takeaway strong{color:var(--teal);}
+  footer .foot-links{display:flex; gap:18px; flex-wrap:wrap; font-family:'IBM Plex Mono', monospace; font-size:12.5px; color:var(--muted);}
+
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <span class="brand mono">KSRCE AI · Agentic AI Lab</span>
+  <a href="#what-is-an-llm">What's an LLM</a>
+  <a href="#possibilities">Possibilities</a>
+  <a href="#samples">Samples</a>
+  <a href="finance-agent/budget_agent_architecture.html">Budget Agent →</a>
+  <a href="voice-agent/voice_agent_architecture.html">Voice Agent →</a>
+</nav>
+
+<header>
+  <div class="kicker"><span class="dot"></span>AGENTIC AI LAB · INTRODUCTION</div>
+  <h1>Before you build an agent — what an LLM actually is</h1>
+  <p>This course has two hands-on labs — a Personal Finance Budget Agent and a Voice-to-Action
+  Campus Assistant — both built from scratch on <strong>OpenRouter's free tier</strong>, so no
+  payment method is ever needed. This page is the primer to read before either lab: what a large
+  language model is, what it makes newly possible, what it's still bad at, and a few worked
+  samples that show the difference between using an LLM naively and using it as part of a real
+  agent.</p>
+
+  <div class="lab-cards">
+    <a class="lab-card" href="finance-agent/budget_agent_architecture.html">
+      <div class="lab-kicker">WORKFLOW 01</div>
+      <h4>💰 Personal Finance Budget Agent</h4>
+      <p>Structured output, a deterministic calculator tool, and a bounded constraint-solving loop.</p>
+    </a>
+    <a class="lab-card" href="voice-agent/voice_agent_architecture.html">
+      <div class="lab-kicker">WORKFLOW 02</div>
+      <h4>🎤 Voice-to-Action Campus Assistant</h4>
+      <p>Speech-to-text, self-reported confidence, a confidence gate, and a human confirm step.</p>
+    </a>
+  </div>
+</header>
+
+<main>
+
+  <!-- ================= WHAT IS AN LLM ================= -->
+  <section id="what-is-an-llm">
+    <div class="section-kicker"><span class="num">1</span>Introduction</div>
+    <h2>What is a Large Language Model?</h2>
+    <p class="lead">
+      A large language model (LLM) is a neural network trained on huge amounts of text to do one
+      very specific thing: predict the most plausible next chunk of text ("token"), given
+      everything written so far. Everything an LLM can do — answering questions, writing code,
+      holding a conversation, calling a tool — is that one skill, applied over and over, one token
+      at a time.
+    </p>
+
+    <div class="panel">
+      <h3>It is not a database, a calculator, or a search engine</h3>
+      <p>
+        It doesn't "look things up" when you ask a question — it generates a statistically likely
+        continuation based on patterns it saw during training. That's why it can sound completely
+        confident about a wrong answer: fluency and correctness are two different things to a
+        model whose only job is fluency.
+      </p>
+    </div>
+
+    <div class="analogy">
+      <strong>A useful analogy —</strong> an LLM is closer to a very well-read improviser than a
+      reference book. Give it a scene ("prompt") and it will continue it convincingly, drawing on
+      everything it has absorbed. It will rarely say "I don't have this scene memorized" unless you
+      explicitly build a system around it that rewards saying so — which is exactly what "structured
+      output," "confidence gating," and "tool use" (later in this page, and both labs) are for.
+    </div>
+  </section>
+
+  <!-- ================= POSSIBILITIES ================= -->
+  <section id="possibilities">
+    <div class="section-kicker"><span class="num">2</span>Possibilities</div>
+    <h2>What this newly makes possible</h2>
+    <p class="lead">
+      On its own, an LLM is a very fluent but unreliable narrator. The interesting engineering
+      starts when you combine it with code that adds structure, delegates the parts it's bad at,
+      and decides when to trust it. Here's what that combination unlocks — each tagged with which
+      lab demonstrates it.
+    </p>
+
+    <div class="card-grid">
+      <div class="card">
+        <h4>📝 Text generation &amp; rewriting</h4>
+        <p>Draft, summarize, translate, or rephrase free-form text on demand.</p>
+      </div>
+      <div class="card">
+        <h4>🧩 Structured output</h4>
+        <p>Force the model to answer in a fixed JSON shape instead of free prose — a contract your
+        code can actually parse.</p>
+        <span class="tag used">Budget Agent · Step 2 · Voice Agent · Step 4</span>
+      </div>
+      <div class="card">
+        <h4>🛠️ Tool use / function calling</h4>
+        <p>The model decides <em>when</em> to call a real function (a calculator, a lookup, an
+        API) — the function does the actual work.</p>
+        <span class="tag used">Budget Agent · Step 3</span>
+      </div>
+      <div class="card">
+        <h4>🎧 Multimodal input</h4>
+        <p>Accept images, audio, or video alongside text in the same request — e.g. transcribing a
+        spoken instruction.</p>
+        <span class="tag used">Voice Agent · Step 2</span>
+      </div>
+      <div class="card">
+        <h4>📊 Self-reported confidence</h4>
+        <p>Ask the model to rate its own certainty and list what's missing — data your code can
+        branch on, instead of trusting tone.</p>
+        <span class="tag used">Voice Agent · Step 4–5</span>
+      </div>
+      <div class="card">
+        <h4>🔁 Bounded agentic loops</h4>
+        <p>Chain the above into observe → decide → act → recheck, with a hard iteration ceiling so
+        it can never run forever.</p>
+        <span class="tag used">Budget Agent · Step 4</span>
+      </div>
+    </div>
+
+    <h3 style="margin-top:36px; font-size:18px;">…and what it's still genuinely bad at</h3>
+    <p class="lead" style="margin-bottom:18px;">
+      Every lab in this course is designed around these limits, not in spite of them — the whole
+      "agent" pattern is code compensating for exactly these failure modes.
+    </p>
+    <div class="card-grid">
+      <div class="card cannot-card">
+        <h4>🧮 Exact arithmetic <span class="tag cannot">cannot</span></h4>
+        <p>It predicts plausible-looking numbers, it doesn't compute. Always delegate math to real
+        code — never trust the model's own sum.</p>
+      </div>
+      <div class="card cannot-card">
+        <h4>🎯 Being right by default <span class="tag cannot">cannot</span></h4>
+        <p>Models are tuned to be agreeable and fluent. Confident-sounding output is not the same
+        thing as correct output.</p>
+      </div>
+      <div class="card cannot-card">
+        <h4>🕐 Knowing "right now" <span class="tag cannot">cannot</span></h4>
+        <p>Its knowledge is frozen at training time. Without a tool feeding it live data, it will
+        guess at anything that changes after that cutoff.</p>
+      </div>
+      <div class="card cannot-card">
+        <h4>💸 Running for free <span class="tag cannot">cannot</span></h4>
+        <p>"Free tier" means a rate-limited slice of real compute (on OpenRouter: 20 req/min, 50
+        req/day with no credits purchased) — not unlimited use.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= SAMPLES ================= -->
+  <section id="samples">
+    <div class="section-kicker"><span class="num">3</span>Samples</div>
+    <h2>Naive prompt vs. agent — side by side</h2>
+    <p class="lead">
+      These are simulated, static comparisons (no live API calls on this page) pulled straight from
+      the two labs' "naive baseline" cells — click through each to see exactly what changes when
+      you add structure, a tool, or a confidence gate.
+    </p>
+
+    <!-- SAMPLE 1: structured output -->
+    <div class="sample">
+      <h3>Sample 1 — Free text vs. a forced JSON schema</h3>
+      <p class="sample-desc">Same underlying request: "I get ₹8000/month, spend ₹5000 on rent+food, want a 3-day Goa trip — can I afford it?"</p>
+      <div class="toggle-row">
+        <button class="btn active" data-sample="s1" data-variant="naive">Naive prompt</button>
+        <button class="btn" data-sample="s1" data-variant="structured">Structured output</button>
+      </div>
+      <div class="sample-output" id="s1-output"></div>
+    </div>
+
+    <!-- SAMPLE 2: tool use for arithmetic -->
+    <div class="sample">
+      <h3>Sample 2 — The model's own arithmetic vs. a real calculator tool</h3>
+      <p class="sample-desc">Prompt: "What is 3897 × 4 + 1256 − 389?"</p>
+      <div class="toggle-row">
+        <button class="btn active" data-sample="s2" data-variant="model">Model does the math</button>
+        <button class="btn" data-sample="s2" data-variant="tool">Calculator tool does the math</button>
+      </div>
+      <div class="sample-output" id="s2-output"></div>
+    </div>
+
+    <!-- SAMPLE 3: confidence gating -->
+    <div class="sample">
+      <h3>Sample 3 — Guessing vs. a confidence-gated follow-up</h3>
+      <p class="sample-desc">Transcript: "Um, yeah, book that place for the thing tomorrow, sometime in the afternoon I guess."</p>
+      <div class="toggle-row">
+        <button class="btn active" data-sample="s3" data-variant="naive">No confidence check</button>
+        <button class="btn" data-sample="s3" data-variant="gated">Confidence-gated agent</button>
+      </div>
+      <div class="sample-output" id="s3-output"></div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="takeaway">
+    <strong>Takeaway —</strong> an LLM alone is a fluent guesser. An agent is that same model
+    wrapped in code that forces structure, delegates anything deterministic, and knows when to
+    stop or ask instead of guessing. Both labs in this course build that wrapper, step by step,
+    entirely on OpenRouter's free tier.
+  </div>
+  <div class="foot-links">
+    <a href="finance-agent/budget_agent_architecture.html">Budget Agent architecture →</a>
+    <a href="voice-agent/voice_agent_architecture.html">Voice Agent architecture →</a>
+    <a href="finance-agent/Budget_Agent_Lab.ipynb">Budget_Agent_Lab.ipynb</a>
+    <a href="voice-agent/Voice_to_Action_Campus_Assistant.ipynb">Voice_to_Action_Campus_Assistant.ipynb</a>
+  </div>
+</footer>
+
+<script>
+(function(){
+  const data = {
+    s1: {
+      naive: {
+        html: '"A 3-day Goa trip usually costs around ₹6,000–7,000 depending on your stay, but since you\'re a student, you can probably manage it on a tight budget! I\'d say go for it — you can always cut back on food a little. 🙂"',
+        verdict: {cls:'bad', text:'⚠️ Invented cost figures, no real comparison against ₹3000 available budget, and leans agreeable ("sycophancy") instead of doing the math.'}
+      },
+      structured: {
+        html: '<span class="k">{</span>\n  <span class="s">"monthly_income"</span>: <span class="n">8000</span>,\n  <span class="s">"fixed_monthly_costs"</span>: <span class="n">5000</span>,\n  <span class="s">"destination"</span>: <span class="s">"Goa"</span>,\n  <span class="s">"trip_duration_days"</span>: <span class="n">3</span>,\n  <span class="s">"hard_constraints"</span>: []\n<span class="k">}</span>',
+        isCode: true,
+        verdict: {cls:'good', text:'✅ A fixed shape your code can parse every time — no matter how the question is phrased. The affordability math happens next, in real Python, not in prose.'}
+      }
+    },
+    s2: {
+      model: {
+        html: '"3897 × 4 + 1256 − 389 = 16,235"  <span class="mono" style="color:var(--muted-2)">(actual answer: 16,255 — off by 20)</span>',
+        verdict: {cls:'bad', text:'⚠️ Close, but wrong. It\'s predicting a plausible-looking number, not calculating one — this gets worse as expressions get longer.'}
+      },
+      tool: {
+        html: '<span class="k">calculator(</span><span class="s">"3897*4+1256-389"</span><span class="k">)</span>  <span class="c">→</span>  <span class="n">16255</span>',
+        isCode: true,
+        verdict: {cls:'good', text:'✅ Exact, every time. The model only decides that a calculation is needed and what expression to build — real code executes it.'}
+      }
+    },
+    s3: {
+      naive: {
+        html: '"Booked: Seminar Hall, tomorrow, 2:00 PM." <span class="mono" style="color:var(--muted-2)">— a room and time it invented; the transcript never specified either.</span>',
+        verdict: {cls:'bad', text:'⚠️ Wrong room gets booked, silently, with total confidence. In a real deployment this is the expensive failure mode.'}
+      },
+      gated: {
+        html: '<span class="k">{</span>\n  <span class="s">"room"</span>: <span class="s">""</span>, <span class="s">"time"</span>: <span class="s">""</span>,\n  <span class="s">"confidence"</span>: <span class="n">0.28</span>,\n  <span class="s">"missing_or_ambiguous_fields"</span>: [<span class="s">"room"</span>, <span class="s">"time"</span>]\n<span class="k">}</span>\n<span class="c">→ 0.28 &lt; threshold (0.7) → agent asks a follow-up instead of booking</span>',
+        isCode: true,
+        verdict: {cls:'good', text:'✅ The uncertainty is data the code can act on — the agent asks "Which room, and what time?" instead of guessing.'}
+      }
+    }
+  };
+
+  function render(sampleId, variant){
+    const entry = data[sampleId][variant];
+    const $out = document.getElementById(sampleId + '-output');
+    const bodyHtml = entry.isCode
+      ? '<div class="code-box">' + entry.html + '</div>'
+      : '<div class="panel" style="margin-bottom:0;"><p>' + entry.html + '</p></div>';
+    $out.innerHTML = bodyHtml +
+      '<div class="verdict-line ' + entry.verdict.cls + '">' + entry.verdict.text + '</div>';
+  }
+
+  document.querySelectorAll('.toggle-row .btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sampleId = btn.dataset.sample;
+      const variant = btn.dataset.variant;
+      document.querySelectorAll('.toggle-row .btn[data-sample="' + sampleId + '"]')
+        .forEach(b => b.classList.toggle('active', b === btn));
+      render(sampleId, variant);
+    });
+  });
+
+  ['s1', 's2', 's3'].forEach(id => render(id, id === 's1' ? 'naive' : (id === 's2' ? 'model' : 'naive')));
+})();
+</script>
+
+</body>
+</html>
